@@ -20,8 +20,8 @@ const SYMBOLS: Symbol[] = [
 const SPIN_COST = 10;
 const ROW_WIN_PRIZE = 50;
 const ROBU_PRIZE = 100;
-const COLS = 5;
-const ROWS = 3;
+const COLS = 3;
+const ROWS = 1;
 
 const getSymbolKey = (s: Symbol): string => s.type === 'emoji' ? s.value : s.src;
 
@@ -94,7 +94,6 @@ export const SlotMachine = () => {
   const isRobu = (s: Symbol): boolean => s.type === 'image';
   
   const evaluateWin = (finalGrid: Symbol[][]): { prize: number; message: string } => {
-    let totalPrize = 0;
     let hasRobu = false;
     
     // Check for Robu anywhere
@@ -108,16 +107,22 @@ export const SlotMachine = () => {
       return { prize: ROBU_PRIZE, message: `🎉 ROBU BONUS! You won $${ROBU_PRIZE}!` };
     }
     
-    // Check each row for matching symbols
-    for (const row of finalGrid) {
-      const keys = row.map(getSymbolKey);
-      if (keys.every(k => k === keys[0])) {
-        totalPrize += ROW_WIN_PRIZE;
-      }
+    // Flatten grid and count symbols
+    const allSymbols = finalGrid.flat();
+    const symbolCounts: Record<string, number> = {};
+    
+    for (const symbol of allSymbols) {
+      const key = getSymbolKey(symbol);
+      symbolCounts[key] = (symbolCounts[key] || 0) + 1;
     }
     
-    if (totalPrize > 0) {
-      return { prize: totalPrize, message: `✨ Row match! You won $${totalPrize}!` };
+    // Check for 2 or 3 of a kind (excluding Robu)
+    for (const [key, count] of Object.entries(symbolCounts)) {
+      if (count >= 2) {
+        const prize = count === 3 ? ROW_WIN_PRIZE * 2 : ROW_WIN_PRIZE;
+        const message = count === 3 ? `✨ 3 of a kind! You won $${prize}!` : `✨ 2 of a kind! You won $${prize}!`;
+        return { prize, message };
+      }
     }
     
     return { prize: 0, message: "No match. Try again!" };
